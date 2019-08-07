@@ -1,0 +1,17 @@
+# Site settings
+title: Artem Savkin
+email: 
+description: ""
+baseurl: ""
+url: "http://artemsavkin.github.io"
+github_username:  artemsavkin
+
+# Build settings
+markdown: kramdown
+permalink: pretty
+
+highlighter: rouge
+kramdown:
+  input: GFM
+  auto_ids: true
+  syntax_highlighter: rouge
