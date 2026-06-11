@@ -150,17 +150,15 @@
   .stat.primary .v { color: var(--accent-ink); }
   .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-  .mathcard {
-    background: #fff;
+  .desc .stepmath {
+    background: var(--field);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    padding: 24px 22px;
-    margin-bottom: 22px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 0 0 14px;
     overflow-x: auto;
   }
-  .mathrow { padding: 6px 0; }
-  .mathrow + .mathrow { border-top: 1px dashed var(--line); }
+  .desc .stepmath + .stepmath { margin-top: -6px; }
 
   .desc h3 { font-size: 15px; margin: 22px 0 8px; }
   .desc h3:first-child { margin-top: 0; }
@@ -399,15 +397,6 @@
         </div>
       </div>
 
-      <div class="mathcard">
-        <div class="mathrow" id="m-tokens"></div>
-        <div class="mathrow" id="m-subst"></div>
-        <div class="mathrow" id="m-flops"></div>
-        <div class="mathrow" id="m-gpuh"></div>
-        <div class="mathrow" id="m-cluster"></div>
-        <div class="mathrow" id="m-cost"></div>
-      </div>
-
       <div class="card desc">
         <h3>How the compute budget is calculated</h3>
         <p>A video world model is not trained on raw pixels — it is trained on the discrete
@@ -418,9 +407,7 @@
         <h3>Step 1 — Total frames</h3>
         <p>Each of the <span class="sym">C</span> camera streams records for <span class="sym">D</span> hours
            at <span class="sym">f</span> frames per second. The total number of frames is:</p>
-        <ul>
-          <li><code>frames = D × 3600 × f × C</code></li>
-        </ul>
+        <div class="stepmath" id="m-frames"></div>
 
         <h3>Step 2 — Tokens per frame</h3>
         <p>The tokenizer splits each frame into square <strong>patches</strong> of
@@ -428,15 +415,13 @@
            so a <span class="sym">W×H</span> frame yields <code>(W/P)·(H/P)</code> spatial tokens.
            Along the time axis it emits <span class="sym">T</span> <strong>temporal tokens per frame</strong>.
            Hence:</p>
-        <ul>
-          <li><code>tokens/frame = (W/P) × (H/P) × T</code></li>
-        </ul>
+        <div class="stepmath" id="m-tpf"></div>
 
         <h3>Step 3 — Total tokens</h3>
-        <p>Multiplying frames by tokens-per-frame gives the dataset's token budget:</p>
-        <ul>
-          <li><code>N = D × 3600 × f × C × (W/P) × (H/P) × T</code></li>
-        </ul>
+        <p>Multiplying frames by tokens-per-frame gives the dataset's token budget
+           <span class="sym">N</span>:</p>
+        <div class="stepmath" id="m-tokens"></div>
+        <div class="stepmath" id="m-subst"></div>
 
         <h3>Step 4 — Training compute</h3>
         <p>Following the standard transformer FLOPs estimate popularized by OpenAI's
@@ -444,8 +429,9 @@
            (Hoffmann et&nbsp;al., 2022), a full forward-and-backward pass over the dataset costs
            <code>6 × θ × N</code> FLOPs — roughly 2 FLOPs per parameter for the forward pass and
            4 for the backward pass — where <span class="sym">θ</span> is the number of model
-           parameters. Training for <span class="sym">E</span> epochs multiplies this:
-           <code>6 × θ × N × E</code>. Frame rate and resolution also set the <strong>raw pixel volume</strong>
+           parameters. Training for <span class="sym">E</span> epochs multiplies this:</p>
+        <div class="stepmath" id="m-flops"></div>
+        <p>Frame rate and resolution also set the <strong>raw pixel volume</strong>
            (<code>D × 3600 × f × C × W × H × 3</code>), whose ratio to <span class="sym">N</span> reports how
            aggressively the tokenizer compresses the signal.</p>
 
@@ -457,11 +443,9 @@
            <span class="sym">n</span> GPUs in parallel (assuming ideal scaling) gives the wall-clock
            time in days, and the total dollar cost follows from the GPU price
            <span class="sym">c</span> ($ per GPU·hour):</p>
-        <ul>
-          <li><code>GPU hours = (6 × θ × N × E) / (G × μ × 3600)</code></li>
-          <li><code>cluster days = GPU hours / (n × 24)</code></li>
-          <li><code>total cost = GPU hours × c</code></li>
-        </ul>
+        <div class="stepmath" id="m-gpuh"></div>
+        <div class="stepmath" id="m-cluster"></div>
+        <div class="stepmath" id="m-cost"></div>
       </div>
 
       <div class="card refs">
@@ -549,6 +533,15 @@
     $("out-cost").textContent    = costTotal > 0 ? "$" + fmt(costTotal) : "—";
     $("out-comp").textContent    = comp > 0 ? fmt(comp) + "×" : "—";
 
+    const tpf = sx * sy * T;
+    const framesEq =
+      "\\[ \\text{frames} = D \\cdot 3600 \\cdot f \\cdot C = " +
+      D.toLocaleString() + " \\cdot 3600 \\cdot " + f + " \\cdot " + C +
+      " = \\mathbf{" + sci(frames) + "}\\ \\text{frames} \\]";
+    const tpfEq =
+      "\\[ \\text{tokens/frame} = \\dfrac{W}{P} \\cdot \\dfrac{H}{P} \\cdot T" +
+      " = \\dfrac{" + W + "}{" + P + "} \\cdot \\dfrac{" + H + "}{" + P + "} \\cdot " + T +
+      " = \\mathbf{" + tpf.toLocaleString() + "} \\]";
     const eq =
       "\\[ N = D \\cdot 3600 \\cdot f \\cdot C \\cdot \\dfrac{W}{P} \\cdot \\dfrac{H}{P} \\cdot T \\]";
     const subst =
@@ -572,6 +565,8 @@
       " = " + sci(gpuHours) + " \\cdot " + c +
       " = \\mathbf{\\$" + sci(costTotal) + "} \\]";
 
+    $("m-frames").innerHTML  = framesEq;
+    $("m-tpf").innerHTML     = tpfEq;
     $("m-tokens").innerHTML  = eq;
     $("m-subst").innerHTML   = subst;
     $("m-flops").innerHTML   = flopsEq;
@@ -579,7 +574,7 @@
     $("m-cluster").innerHTML = clusterEq;
     $("m-cost").innerHTML    = costEq;
 
-    const rows = [$("m-tokens"), $("m-subst"), $("m-flops"), $("m-gpuh"), $("m-cluster"), $("m-cost")];
+    const rows = [$("m-frames"), $("m-tpf"), $("m-tokens"), $("m-subst"), $("m-flops"), $("m-gpuh"), $("m-cluster"), $("m-cost")];
     if (window.MathJax && MathJax.typesetPromise) {
       MathJax.typesetClear && MathJax.typesetClear(rows);
       MathJax.typesetPromise(rows);
