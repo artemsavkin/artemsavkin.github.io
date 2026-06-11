@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Compute Budget Calculator</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["\\(","\\)"]], displayMath: [["\\[","\\]"]] },
+    svg: { fontCache: "global" },
+    startup: {
+      typeset: false,
+      pageReady: () => MathJax.startup.defaultPageReady().then(() => window.__recompute && window.__recompute())
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script" async></script>
+<style>
+  :root {
+    --bg: #f7f8f9;
+    --panel: #ffffff;
+    --ink: #1f2421;
+    --muted: #6b7280;
+    --line: #e6e8eb;
+    --accent: #2c68b0;       /* BMW blue */
+    --accent-ink: #1f4d85;
+    --indigo: #4f5bd5;
+    --field: #f1f3f5;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 40px 24px 64px; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent-ink); font-weight: 700;
+  }
+  h1 { font-size: 30px; line-height: 1.2; margin: 8px 0 6px; font-weight: 700; letter-spacing: -.02em; }
+  header p { margin: 0; color: var(--muted); max-width: 640px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+  .leftcol { display: flex; flex-direction: column; gap: 24px; }
+
+  .preset-list { display: flex; flex-direction: column; gap: 10px; }
+  .preset {
+    text-align: left;
+    background: var(--field);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 11px 13px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex; flex-direction: column; gap: 2px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .preset:hover { background: #fff; border-color: var(--accent); }
+  .preset.active { background: #e8f1fa; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .preset .pname { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .preset .pmeta { font-size: 12px; color: var(--muted); }
+  .preset .pnote { font-size: 11.5px; line-height: 1.4; color: #8a929b; margin-top: 4px; }
+  .preset .pnote em { color: var(--accent-ink); font-style: italic; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--muted); margin: 0 0 18px; font-weight: 700;
+  }
+
+  /* Inputs */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13.5px; font-weight: 600; margin-bottom: 7px;
+  }
+  .field label .sym { color: var(--accent-ink); font-style: italic; font-weight: 700; }
+  .control { display: flex; align-items: center; gap: 10px; }
+  input[type="number"], select {
+    width: 100%;
+    background: var(--field);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 14.5px;
+    color: var(--ink);
+    font-family: inherit;
+    transition: border-color .15s, background .15s;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: none; background: #fff; border-color: var(--accent);
+  }
+  .unit { font-size: 12.5px; color: var(--muted); white-space: nowrap; min-width: 56px; }
+
+  .readout {
+    background: #e8f1fa; border: 1px dashed var(--accent);
+    border-radius: 10px; padding: 9px 11px;
+    font-size: 14.5px; font-weight: 700; color: var(--accent-ink);
+  }
+
+  .radios { display: flex; flex-direction: row; gap: 8px; }
+  .radio {
+    flex: 1;
+    display: flex; align-items: center; gap: 9px;
+    background: var(--field); border: 1px solid transparent; border-radius: 10px;
+    padding: 9px 11px; cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: border-color .15s, background .15s;
+  }
+  .radio:hover { background: #fff; border-color: var(--line); }
+  .radio:has(input:checked) { background: #e8f1fa; border-color: var(--accent); }
+  .radio input { accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
+  .radio span { display: flex; flex-direction: column; line-height: 1.2; }
+  .radio em { color: var(--muted); font-style: normal; font-weight: 400; font-size: 12px; }
+
+  /* Right column */
+  .headline {
+    display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 22px;
+  }
+  .headline .break { flex-basis: 100%; height: 0; }
+  .stat {
+    flex: 1 1 160px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    background: linear-gradient(180deg, #fff, #fbfcfd);
+  }
+  .stat.primary { border-color: var(--accent); background: linear-gradient(180deg, #eaf2fb, #dce9f7); }
+  .stat .k { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .stat .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
+  .stat.primary .v { color: var(--accent-ink); }
+  .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .mathcard {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 24px 22px;
+    margin-bottom: 22px;
+    overflow-x: auto;
+  }
+  .mathrow { padding: 6px 0; }
+  .mathrow + .mathrow { border-top: 1px dashed var(--line); }
+
+  .desc h3 { font-size: 15px; margin: 22px 0 8px; }
+  .desc h3:first-child { margin-top: 0; }
+  .desc p { margin: 0 0 10px; color: #384047; font-size: 14.5px; }
+  .desc ul { margin: 0 0 12px; padding-left: 18px; }
+  .desc li { margin-bottom: 7px; font-size: 14.5px; color: #384047; }
+  .desc code {
+    background: var(--field); padding: 1px 6px; border-radius: 6px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--accent-ink);
+  }
+  .desc .sym { color: var(--accent-ink); font-style: italic; font-weight: 700; }
+  .refs { margin-top: 22px; }
+  .refs h3 { font-size: 15px; margin: 0 0 12px; }
+  .refs ol { margin: 0; padding-left: 22px; }
+  .refs li {
+    font-size: 13px; line-height: 1.55; color: #384047;
+    margin-bottom: 10px; padding-left: 4px;
+  }
+  .refs li::marker { color: var(--accent-ink); font-weight: 700; }
+  .refs em { font-style: italic; }
+
+  footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">World Model · Data Pipeline</div>
+    <h1>Compute Budget Calculator</h1>
+    <p>Estimate the token volume and training compute required to train a video world model
+       from a multi-camera dataset, given the tokenizer's spatio-temporal grid.</p>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: inputs + presets -->
+    <div class="leftcol">
+    <section class="card" aria-label="inputs">
+      <h2>Inputs</h2>
+
+      <div class="field">
+        <label>Dataset size <span class="sym">D</span></label>
+        <div class="control">
+          <input type="number" id="hours" value="1000" min="0" step="10" />
+          <span class="unit">hours</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Camera streams <span class="sym">C</span></label>
+        <div class="control">
+          <input type="number" id="cams" value="6" min="1" step="1" />
+          <span class="unit">streams</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Frame rate <span class="sym">f</span></label>
+        <div class="control">
+          <input type="number" id="fps" value="10" min="1" step="1" />
+          <span class="unit">Hz</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Resolution <span class="sym">W&times;H</span></label>
+        <div class="control">
+          <select id="res">
+            <option value="576x320" selected>576 × 320</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Patch size <span class="sym">P</span></label>
+        <div class="control">
+          <input type="number" id="patch" value="16" min="1" step="1" />
+          <span class="unit">px / side</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Temporal tokens <span class="sym">T</span></label>
+        <div class="control">
+          <input type="number" id="ttok" value="2" min="1" step="1" />
+          <span class="unit">/ frame</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Model parameters <span class="sym">&theta;</span></label>
+        <div class="control">
+          <select id="params">
+            <option value="0.5e9">0.5B</option>
+            <option value="1e9">1B</option>
+            <option value="3e9">3B</option>
+            <option value="10e9">10B</option>
+            <option value="30e9">30B</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Number of epochs <span class="sym">E</span></label>
+        <div class="control">
+          <input type="number" id="epochs" value="1" min="1" step="1" />
+          <span class="unit">epochs</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>GPU</label>
+        <div class="control">
+          <select id="gpu">
+            <option value="h100">NVIDIA H100 SXM5</option>
+            <option value="a100" selected>NVIDIA A100 SXM4</option>
+            <option value="rtx5090">NVIDIA GeForce RTX 5090</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Precision</label>
+        <div class="radios">
+          <label class="radio">
+            <input type="radio" name="precision" value="fp32" checked />
+            <span>FP32 <em>Single precision</em></span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="precision" value="fp16" />
+            <span>FP16 <em>Mixed precision</em></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>GPU peak performance <span class="sym">G</span></label>
+        <div class="readout" id="gpu-peak">—</div>
+      </div>
+
+      <div class="field">
+        <label>Model FLOPs Utilization <span class="sym">&mu;</span></label>
+        <div class="radios">
+          <label class="radio">
+            <input type="radio" name="mfu" value="0.40" checked />
+            <span>40%</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="mfu" value="0.35" />
+            <span>35%</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Number of GPUs <span class="sym">n</span></label>
+        <div class="control">
+          <input type="number" id="ngpu" value="8" min="1" step="1" />
+          <span class="unit">GPUs</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>GPU cost <span class="sym">c</span></label>
+        <div class="control">
+          <input type="number" id="cost" value="4.1" min="0" step="0.1" />
+          <span class="unit">$ / GPU·h</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card presets" aria-label="presets">
+      <h2>Presets</h2>
+      <div class="preset-list">
+        <button type="button" class="preset" data-hours="20000" data-fps="10" data-ttok="1" data-params="30e9">
+          <span class="pname">Production</span>
+          <span class="pmeta">20,000 h · 10 Hz · 1 temporal · 30B</span>
+          <span class="pnote">Frontier-scale run: a 30B model trained on a large proprietary fleet dataset.</span>
+        </button>
+        <button type="button" class="preset" data-hours="1727" data-fps="10" data-ttok="1" data-params="10e9">
+          <span class="pname">Alpamayo-R1</span>
+          <span class="pmeta">1,727 h · 10 Hz · 576×320 · 1 temporal · 10B</span>
+          <span class="pnote">Matches <em>Alpamayo et al.</em> (2025) — 1,727 h of curated driving data at 576×320 with a 10B world model.</span>
+        </button>
+        <button type="button" class="preset" data-hours="570" data-fps="2" data-ttok="1" data-params="3e9">
+          <span class="pname">Research</span>
+          <span class="pmeta">570 h · 2 Hz · 1 temporal · 3B</span>
+          <span class="pnote">Sized to the Waymo Open Motion Dataset (~570 h; <em>Ettinger et al.</em>, 2021).</span>
+        </button>
+        <button type="button" class="preset" data-hours="100" data-fps="2" data-ttok="1" data-params="1e9">
+          <span class="pname">PoC</span>
+          <span class="pmeta">100 h · 2 Hz · 1 temporal · 1B</span>
+          <span class="pnote"><em>Alpamayo et al.</em> (2025) show a 1B-parameter model already reaches robust results.</span>
+        </button>
+        <button type="button" class="preset" data-hours="15" data-fps="2" data-ttok="1" data-params="0.5e9">
+          <span class="pname">Prototyping</span>
+          <span class="pmeta">15 h · 2 Hz · 1 temporal · 0.5B</span>
+          <span class="pnote"><em>Naumann et al.</em> (2025) establish ~15 h (nuScenes; <em>Caesar et al.</em>, 2020) as a practical minimum.</span>
+        </button>
+      </div>
+    </section>
+    </div>
+
+    <!-- RIGHT: formula + description -->
+    <section>
+      <div class="headline">
+        <div class="stat primary">
+          <div class="k">Total tokens &nbsp;N</div>
+          <div class="v" id="out-tokens">—</div>
+          <div class="sub">tokenizer output across the dataset</div>
+        </div>
+        <div class="stat">
+          <div class="k">Training compute</div>
+          <div class="v" id="out-flops">—</div>
+          <div class="sub">FLOPs · 6·θ·N rule</div>
+        </div>
+        <div class="stat">
+          <div class="k">Compression</div>
+          <div class="v" id="out-comp">—</div>
+          <div class="sub">raw pixels ÷ tokens</div>
+        </div>
+        <div class="break"></div>
+        <div class="stat">
+          <div class="k">Total GPU time</div>
+          <div class="v" id="out-gpuh">—</div>
+          <div class="sub">hours</div>
+        </div>
+        <div class="stat">
+          <div class="k">Cluster time</div>
+          <div class="v" id="out-cluster">—</div>
+          <div class="sub">days · GPU hours ÷ (n · 24)</div>
+        </div>
+        <div class="stat primary">
+          <div class="k">Total cost</div>
+          <div class="v" id="out-cost">—</div>
+          <div class="sub">GPU·hours × c</div>
+        </div>
+      </div>
+
+      <div class="mathcard">
+        <div class="mathrow" id="m-tokens"></div>
+        <div class="mathrow" id="m-subst"></div>
+        <div class="mathrow" id="m-flops"></div>
+        <div class="mathrow" id="m-gpuh"></div>
+        <div class="mathrow" id="m-cluster"></div>
+        <div class="mathrow" id="m-cost"></div>
+      </div>
+
+      <div class="card desc">
+        <h3>How the compute budget is calculated</h3>
+        <p>A video world model is not trained on raw pixels — it is trained on the discrete
+           <strong>tokens</strong> emitted by a learned tokenizer. The compute budget is therefore
+           driven by the <strong>total number of tokens</strong> the dataset produces once it passes
+           through that tokenizer's spatio-temporal grid, together with the size of the model.</p>
+
+        <h3>Step 1 — Total frames</h3>
+        <p>Each of the <span class="sym">C</span> camera streams records for <span class="sym">D</span> hours
+           at <span class="sym">f</span> frames per second. The total number of frames is:</p>
+        <ul>
+          <li><code>frames = D × 3600 × f × C</code></li>
+        </ul>
+
+        <h3>Step 2 — Tokens per frame</h3>
+        <p>The tokenizer splits each frame into square <strong>patches</strong> of
+           <span class="sym">P</span>×<span class="sym">P</span> pixels — one spatial token per patch —
+           so a <span class="sym">W×H</span> frame yields <code>(W/P)·(H/P)</code> spatial tokens.
+           Along the time axis it emits <span class="sym">T</span> <strong>temporal tokens per frame</strong>.
+           Hence:</p>
+        <ul>
+          <li><code>tokens/frame = (W/P) × (H/P) × T</code></li>
+        </ul>
+
+        <h3>Step 3 — Total tokens</h3>
+        <p>Multiplying frames by tokens-per-frame gives the dataset's token budget:</p>
+        <ul>
+          <li><code>N = D × 3600 × f × C × (W/P) × (H/P) × T</code></li>
+        </ul>
+
+        <h3>Step 4 — Training compute</h3>
+        <p>Following the standard transformer FLOPs estimate popularized by OpenAI's
+           <em>Scaling Laws</em> (Kaplan et&nbsp;al., 2020) and DeepMind's <em>Chinchilla</em>
+           (Hoffmann et&nbsp;al., 2022), a full forward-and-backward pass over the dataset costs
+           <code>6 × θ × N</code> FLOPs — roughly 2 FLOPs per parameter for the forward pass and
+           4 for the backward pass — where <span class="sym">θ</span> is the number of model
+           parameters. Training for <span class="sym">E</span> epochs multiplies this:
+           <code>6 × θ × N × E</code>. Frame rate and resolution also set the <strong>raw pixel volume</strong>
+           (<code>D × 3600 × f × C × W × H × 3</code>), whose ratio to <span class="sym">N</span> reports how
+           aggressively the tokenizer compresses the signal.</p>
+
+        <h3>Step 5 — GPU hours, cluster time and cost</h3>
+        <p>A single GPU delivers <span class="sym">G</span> peak FLOPS, but only a fraction
+           <span class="sym">μ</span> — the <strong>Model FLOPs Utilization</strong> — is realized
+           in practice. Dividing the total training FLOPs by the effective throughput and converting
+           seconds to hours gives the device-hour budget. Spreading the work across
+           <span class="sym">n</span> GPUs in parallel (assuming ideal scaling) gives the wall-clock
+           time in days, and the total dollar cost follows from the GPU price
+           <span class="sym">c</span> ($ per GPU·hour):</p>
+        <ul>
+          <li><code>GPU hours = (6 × θ × N × E) / (G × μ × 3600)</code></li>
+          <li><code>cluster days = GPU hours / (n × 24)</code></li>
+          <li><code>total cost = GPU hours × c</code></li>
+        </ul>
+      </div>
+
+      <div class="card refs">
+        <h3>References</h3>
+        <ol>
+          <li>Kaplan, J., McCandlish, S., Henighan, T., Brown, T.&nbsp;B., Chess, B., Child, R.,
+              Gray, S., Radford, A., Wu, J., &amp; Amodei, D. <em>Scaling Laws for Neural Language
+              Models</em>. arXiv preprint, 2020.</li>
+          <li>Hoffmann, J., Borgeaud, S., Mensch, A., Buchatskaya, E., Cai, T., Rutherford, E.,
+              et&nbsp;al. <em>Training Compute-Optimal Large Language Models</em> (Chinchilla).
+              NeurIPS, 2022.</li>
+          <li>Alpamayo et&nbsp;al. <em>Alpamayo-R1: An Autonomous-Driving World Foundation
+              Model</em>. Technical Report, 2025.</li>
+          <li>Ettinger, S., Cheng, S., Caine, B., Liu, C., Zhao, H., Pradhan, S., et&nbsp;al.
+              <em>Large Scale Interactive Motion Forecasting for Autonomous Driving: The Waymo Open
+              Motion Dataset</em>. ICCV, 2021.</li>
+          <li>Caesar, H., Bankiti, V., Lang, A.&nbsp;H., Vora, S., Liong, V.&nbsp;E., Xu, Q.,
+              et&nbsp;al. <em>nuScenes: A Multimodal Dataset for Autonomous Driving</em>.
+              CVPR, 2020.</li>
+          <li>Naumann et&nbsp;al. <em>Data Scaling Laws for End-to-End Autonomous Driving</em>.
+              CVPRW (WAD), 2025.</li>
+        </ol>
+      </div>
+
+      <footer>Estimates only — actual cost depends on epochs, sequence packing, and tokenizer architecture.</footer>
+    </section>
+  </div>
+</div>
+
+<script>
+  const ids = ["hours","cams","fps","res","patch","ttok","params","epochs","gpu","ngpu","cost"];
+  const $ = id => document.getElementById(id);
+
+  // effective peak performance (FLOPS) by GPU variant and precision
+  const GPU_FLOPS = {
+    h100:    { fp16: 495e12, fp32: 67e12 },
+    a100:    { fp16: 312e12, fp32: 19.5e12 },
+    rtx5090: { fp16: 419e12, fp32: 105e12 },
+  };
+
+  function fmt(n) {
+    if (!isFinite(n)) return "—";
+    if (n === 0) return "0";
+    const units = [["Q",1e15],["T",1e12],["B",1e9],["M",1e6],["K",1e3]];
+    for (const [u,v] of units) if (n >= v) return (n/v).toFixed(n/v >= 100 ? 0 : 1) + u;
+    return n.toFixed(0);
+  }
+  function sci(n) {
+    if (!isFinite(n) || n <= 0) return "0";
+    const e = Math.floor(Math.log10(n));
+    const m = n / Math.pow(10, e);
+    return m.toFixed(2) + " \\times 10^{" + e + "}";
+  }
+
+  function compute() {
+    const D  = +$("hours").value || 0;
+    const C  = +$("cams").value  || 0;
+    const f  = +$("fps").value   || 0;
+    const P  = +$("patch").value || 1;
+    const T  = +$("ttok").value  || 0;
+    const Pm = +$("params").value || 0;
+    const E  = +$("epochs").value || 1;
+    const prec = (document.querySelector('input[name="precision"]:checked') || {}).value || "fp32";
+    const G  = (GPU_FLOPS[$("gpu").value] || {})[prec] || 0;
+    $("gpu-peak").textContent = G > 0 ? (G / 1e12) + " TFLOPS · " + prec.toUpperCase() : "—";
+    const mu = +((document.querySelector('input[name="mfu"]:checked') || {}).value) || 0;
+    const n  = +$("ngpu").value || 0;
+    const c  = +$("cost").value || 0;
+    const [W, H] = $("res").value.split("x").map(Number);
+
+    const sx = W / P, sy = H / P;             // spatial tokens per axis
+    const frames = D * 3600 * f * C;
+    const N = frames * sx * sy * T;
+    const rawPixels = frames * W * H * 3;
+    const comp = N > 0 ? rawPixels / N : 0;
+    const flops = 6 * Pm * N * E;                                 // total, all epochs
+    const gpuHours = (G > 0 && mu > 0) ? flops / (G * mu * 3600) : 0;  // total device-hours
+    const clusterDays = n > 0 ? gpuHours / (n * 24) : 0;
+    const costTotal = gpuHours * c;
+
+    $("out-tokens").textContent  = fmt(N);
+    $("out-flops").textContent   = N > 0 ? sci(flops).replace(" \\times 10^{", "e").replace("}","") : "—";
+    $("out-gpuh").textContent    = gpuHours > 0 ? fmt(gpuHours) : "—";
+    $("out-cluster").textContent = clusterDays > 0 ? fmt(clusterDays) : "—";
+    $("out-cost").textContent    = costTotal > 0 ? "$" + fmt(costTotal) : "—";
+    $("out-comp").textContent    = comp > 0 ? fmt(comp) + "×" : "—";
+
+    const eq =
+      "\\[ N = D \\cdot 3600 \\cdot f \\cdot C \\cdot \\dfrac{W}{P} \\cdot \\dfrac{H}{P} \\cdot T \\]";
+    const subst =
+      "\\[ N = " + D.toLocaleString() + " \\cdot 3600 \\cdot " + f + " \\cdot " + C +
+      " \\cdot \\dfrac{" + W + "}{" + P + "} \\cdot \\dfrac{" + H + "}{" + P + "} \\cdot " + T +
+      " = \\mathbf{" + sci(N) + "}\\ \\text{tokens} \\]";
+    const flopsEq =
+      "\\[ \\text{FLOPs} \\approx 6 \\, \\theta \\, N \\, E = 6 \\cdot " + sci(Pm) + " \\cdot " + sci(N) +
+      " \\cdot " + E + " = \\mathbf{" + sci(flops) + "} \\]";
+
+    const gpuEq =
+      "\\[ \\text{GPU hours} = \\dfrac{6 \\, \\theta \\, N \\, E}{G \\cdot \\mu \\cdot 3600}" +
+      " = \\dfrac{" + sci(flops) + "}{" + sci(G) + " \\cdot " + mu + " \\cdot 3600}" +
+      " = \\mathbf{" + sci(gpuHours) + "}\\ \\text{h} \\]";
+    const clusterEq =
+      "\\[ \\text{Cluster days} = \\dfrac{\\text{GPU hours}}{n \\cdot 24}" +
+      " = \\dfrac{" + sci(gpuHours) + "}{" + n.toLocaleString() + " \\cdot 24}" +
+      " = \\mathbf{" + sci(clusterDays) + "}\\ \\text{d} \\]";
+    const costEq =
+      "\\[ \\text{Total cost} = \\text{GPU hours} \\cdot c" +
+      " = " + sci(gpuHours) + " \\cdot " + c +
+      " = \\mathbf{\\$" + sci(costTotal) + "} \\]";
+
+    $("m-tokens").innerHTML  = eq;
+    $("m-subst").innerHTML   = subst;
+    $("m-flops").innerHTML   = flopsEq;
+    $("m-gpuh").innerHTML    = gpuEq;
+    $("m-cluster").innerHTML = clusterEq;
+    $("m-cost").innerHTML    = costEq;
+
+    const rows = [$("m-tokens"), $("m-subst"), $("m-flops"), $("m-gpuh"), $("m-cluster"), $("m-cost")];
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetClear && MathJax.typesetClear(rows);
+      MathJax.typesetPromise(rows);
+    }
+  }
+
+  ids.forEach(id => $(id).addEventListener("change", compute));
+  ids.forEach(id => $(id).addEventListener("input", compute));
+  document.querySelectorAll('input[name="precision"], input[name="mfu"]').forEach(r => r.addEventListener("change", compute));
+
+  // presets — delegated so binding never depends on element timing
+  function setVal(id, v) {
+    const el = $(id);
+    if (!el) return;
+    el.value = v;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".preset");
+    if (!btn) return;
+    setVal("hours",  btn.dataset.hours);
+    setVal("fps",    btn.dataset.fps);
+    setVal("ttok",   btn.dataset.ttok);
+    setVal("params", btn.dataset.params);
+    document.querySelectorAll(".preset").forEach(b => b.classList.toggle("active", b === btn));
+    compute();
+  });
+
+  // apply the Research preset as the default selection on load
+  const defaultPreset = document.querySelector('.preset[data-hours="570"]');
+  if (defaultPreset) defaultPreset.click();
+
+  // expose for the MathJax pageReady hook, and run immediately on load
+  window.__recompute = compute;
+  compute();
+</script>
+</body>
+</html>
