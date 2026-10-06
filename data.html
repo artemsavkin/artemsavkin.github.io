@@ -22,16 +22,46 @@
     --ink: #1f2421;
     --muted: #6b7280;
     --line: #e6e8eb;
-    --accent: #337DE0;       /* Dunkelblau */
-    --accent-ink: #2258a8;
-    --accent-soft: #d9ebfa;
-    --lightblue: #46CDDE;    /* Hellblau */
+    --accent: #46CDDE;       /* Hellblau — main color */
+    --accent-ink: #337DE0;   /* Dunkelblau */
+    --accent-soft: #e0f6fa;
+    --accent-grad: #c9f0f6;
+    --blue: #337DE0;         /* Dunkelblau */
     --green: #4FB878;        /* Grün */
+    --green-soft: #e2f4ea;
+    --green-ink: #2e7d52;
     --orange: #F18761;       /* Orange */
     --purple: #9666D4;       /* Lila */
+    --purple-soft: #efe7fa;
+    --purple-ink: #6b3fa8;
     --red: #E45862;          /* Rot */
+    --red-soft: #fbe9ec;
+    --red-grad: #f7d8dc;
+    --red-ink: #b03a44;
     --field: #f1f3f5;
+    --body: #384047;
     --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+  }
+  body.dark {
+    --bg: #13181d;
+    --panel: #1c242c;
+    --ink: #e8ecef;
+    --muted: #9aa5b1;
+    --line: #2c3742;
+    --accent: #46CDDE;
+    --accent-ink: #46CDDE;
+    --accent-soft: rgba(70,205,222,.13);
+    --accent-grad: rgba(70,205,222,.06);
+    --green-soft: rgba(79,184,120,.14);
+    --green-ink: #4FB878;
+    --purple-soft: rgba(150,102,212,.15);
+    --purple-ink: #b78ee8;
+    --red-soft: rgba(228,88,98,.14);
+    --red-grad: rgba(228,88,98,.07);
+    --red-ink: #f08088;
+    --field: #232d36;
+    --body: #c3ccd4;
+    --shadow: 0 1px 2px rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.35);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -45,6 +75,19 @@
   .wrap { max-width: 1140px; margin: 0 auto; padding: 40px 24px 64px; }
 
   header { margin-bottom: 28px; }
+  .theme-toggle {
+    float: right;
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 7px 13px;
+    font-size: 13px; font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .15s, background .15s;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
   .eyebrow {
     font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
     color: var(--accent-ink); font-weight: 700;
@@ -73,11 +116,11 @@
     display: flex; flex-direction: column; gap: 2px;
     transition: border-color .15s, background .15s, box-shadow .15s;
   }
-  .preset:hover { background: #fff; border-color: var(--green); }
+  .preset:hover { background: var(--panel); border-color: var(--green); }
   .preset.active { background: var(--accent-soft); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .preset .pname { font-weight: 700; font-size: 14px; color: var(--ink); }
   .preset .pmeta { font-size: 12px; color: var(--muted); }
-  .preset .pnote { font-size: 11.5px; line-height: 1.4; color: #8a929b; margin-top: 4px; }
+  .preset .pnote { font-size: 11.5px; line-height: 1.4; color: var(--muted); margin-top: 4px; }
   .preset .pnote em { color: var(--accent-ink); font-style: italic; }
 
   .card {
@@ -113,14 +156,14 @@
     transition: border-color .15s, background .15s;
   }
   input[type="number"]:focus, select:focus {
-    outline: none; background: #fff; border-color: var(--accent);
+    outline: none; background: var(--panel); border-color: var(--accent);
   }
   .unit { font-size: 12.5px; color: var(--muted); white-space: nowrap; min-width: 56px; }
 
   .readout {
-    background: #fbe9ec; border: 1px dashed var(--red);
+    background: var(--red-soft); border: 1px dashed var(--red);
     border-radius: 10px; padding: 9px 11px;
-    font-size: 14.5px; font-weight: 700; color: #b03a44;
+    font-size: 14.5px; font-weight: 700; color: var(--red-ink);
   }
 
   .radios { display: flex; flex-direction: row; gap: 8px; }
@@ -131,7 +174,7 @@
     padding: 9px 11px; cursor: pointer; font-size: 14px; font-weight: 600;
     transition: border-color .15s, background .15s;
   }
-  .radio:hover { background: #fff; border-color: var(--line); }
+  .radio:hover { background: var(--panel); border-color: var(--line); }
   .radio:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
   .radio input { accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
   .radio span { display: flex; flex-direction: column; line-height: 1.2; }
@@ -147,14 +190,14 @@
     border: 1px solid var(--line);
     border-radius: 14px;
     padding: 16px 18px;
-    background: linear-gradient(180deg, #fff, #fbfcfd);
+    background: linear-gradient(180deg, var(--panel), var(--field));
   }
-  .stat.primary { border-color: var(--accent); background: linear-gradient(180deg, #d9ebfa, #c4e0f7); }
-  .stat.cost { border-color: var(--red); background: linear-gradient(180deg, #fbe9ec, #f7d8dc); }
+  .stat.primary { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), var(--accent-grad)); }
+  .stat.cost { border-color: var(--red); background: linear-gradient(180deg, var(--red-soft), var(--red-grad)); }
   .stat .k { font-size: 12px; color: var(--muted); font-weight: 600; }
   .stat .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
   .stat.primary .v { color: var(--accent-ink); }
-  .stat.cost .v { color: #b03a44; }
+  .stat.cost .v { color: var(--red-ink); }
   .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
   .desc .stepmath {
@@ -169,9 +212,9 @@
 
   .desc h3 { font-size: 15px; margin: 22px 0 8px; }
   .desc h3:first-child { margin-top: 0; }
-  .desc p { margin: 0 0 10px; color: #384047; font-size: 14.5px; }
+  .desc p { margin: 0 0 10px; color: var(--body); font-size: 14.5px; }
   .desc ul { margin: 0 0 12px; padding-left: 18px; }
-  .desc li { margin-bottom: 7px; font-size: 14.5px; color: #384047; }
+  .desc li { margin-bottom: 7px; font-size: 14.5px; color: var(--body); }
   .desc code {
     background: var(--field); padding: 1px 6px; border-radius: 6px;
     font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--accent-ink);
@@ -181,7 +224,7 @@
   .refs h3 { font-size: 15px; margin: 0 0 12px; }
   .refs ol { margin: 0; padding-left: 22px; }
   .refs li {
-    font-size: 13px; line-height: 1.55; color: #384047;
+    font-size: 13px; line-height: 1.55; color: var(--body);
     margin-bottom: 10px; padding-left: 4px;
   }
   .refs li::marker { color: var(--accent-ink); font-weight: 700; }
@@ -193,6 +236,7 @@
 <body>
 <div class="wrap">
   <header>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
     <div class="eyebrow">World Model · Data Pipeline</div>
     <h1>Compute Budget Calculator</h1>
     <p>Estimate the token volume and training compute required to train a video world model
@@ -591,6 +635,19 @@
   ids.forEach(id => $(id).addEventListener("change", compute));
   ids.forEach(id => $(id).addEventListener("input", compute));
   document.querySelectorAll('input[name="precision"], input[name="mfu"]').forEach(r => r.addEventListener("change", compute));
+
+  // dark mode toggle — persisted in localStorage
+  const themeBtn = $("theme-toggle");
+  function applyTheme(dark) {
+    document.body.classList.toggle("dark", dark);
+    themeBtn.textContent = dark ? "☀️ Light" : "🌙 Dark";
+  }
+  applyTheme(localStorage.getItem("wm-theme") === "dark");
+  themeBtn.addEventListener("click", () => {
+    const dark = !document.body.classList.contains("dark");
+    localStorage.setItem("wm-theme", dark ? "dark" : "light");
+    applyTheme(dark);
+  });
 
   // presets — delegated so binding never depends on element timing
   function setVal(id, v) {
